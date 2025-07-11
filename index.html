@@ -120,6 +120,10 @@
             border-left: 4px solid var(--alert-static-border);
             color: var(--text-primary);
         }
+        #alert-modal-message ul, #alert-modal-tip ul {
+            list-style-position: inside;
+            text-align: left;
+        }
     </style>
 </head>
 <body class="flex flex-col items-center min-h-screen p-2 sm:p-4">
@@ -151,16 +155,14 @@
                  <svg id="alert-modal-icon" class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24"></svg>
             </div>
             <h3 id="alert-modal-title" class="text-lg leading-6 font-medium mb-2"></h3>
-            <div class="mt-2">
-                <p id="alert-modal-message" class="text-sm" style="color: var(--text-secondary);"></p>
-            </div>
+            <div id="alert-modal-message" class="mt-2 text-sm" style="color: var(--text-secondary);"></div>
             <div class="mt-4 p-3 rounded-lg" style="background-color: rgba(128,128,128,0.1);">
-                 <p id="alert-modal-tip" class="text-sm text-left" style="color: var(--text-secondary);"></p>
+                 <div id="alert-modal-tip" class="text-sm" style="color: var(--text-secondary);"></div>
             </div>
             <div class="mt-5">
                 <button id="share-alert-btn" class="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium" style="color: var(--text-secondary); background-color: rgba(128,128,128,0.2);">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
-                    <span>Unduh Gambar</span>
+                    <span>Bagikan Info</span>
                 </button>
             </div>
         </div>
@@ -175,7 +177,7 @@
             <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full mb-4 bg-green-100">
                  <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             </div>
-            <h3 class="text-lg leading-6 font-medium mb-2">Kabar Baik!</h3>
+            <h3 class="text-lg leading-6 font-medium mb-2">Cuaca Bagus</h3>
             <div class="mt-2">
                 <p id="nice-modal-message" class="text-sm" style="color: var(--text-secondary);"></p>
             </div>
@@ -185,7 +187,7 @@
             <div class="mt-5">
                 <button id="share-nice-btn" class="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium" style="color: var(--text-secondary); background-color: rgba(128,128,128,0.2);">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
-                    <span>Unduh Gambar</span>
+                    <span>Bagikan Info</span>
                 </button>
             </div>
         </div>
@@ -205,7 +207,7 @@
             <div class="flex items-center gap-4">
                  <button id="share-btn" class="flex items-center gap-2 p-2 rounded-lg" style="color: var(--text-secondary); background-color: rgba(128,128,128,0.1);" title="Bagikan Cuaca">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
-                    <span class="text-sm font-medium">Unduh Gambar</span>
+                    <span class="text-sm font-medium">Bagikan Info</span>
                 </button>
                 <div class="flex items-center gap-2">
                     <span id="theme-text" class="text-sm" style="color: var(--text-secondary);"></span>
@@ -510,41 +512,59 @@
         // --- Alert and Modal Logic ---
         function processAlerts() {
             const { hourly } = weatherData;
-            const alerts = new Set();
-            let firstAlert = null;
+            let firstAlertTime = null;
+            let alertsForModal = [];
+            let allStaticAlerts = { rain: null, wind: null, temp: null };
+
             const now = new Date();
-
-            const alertChecks = [
-                { type: 'rain', threshold: ALERT_THRESHOLDS.RAIN_PROBABILITY, data: hourly.precipitation_probability, text: 'Potensi hujan lebat' },
-                { type: 'wind', threshold: ALERT_THRESHOLDS.WIND_SPEED, data: hourly.wind_speed_10m, text: 'Potensi angin kencang' },
-                { type: 'temp', threshold: ALERT_THRESHOLDS.HIGH_TEMP, data: hourly.temperature_2m, text: 'Potensi suhu panas' }
-            ];
-
             const nowAtHourStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours());
-            const startIndex = hourly.time.findIndex(t => new Date(t) >= nowAtHourStart);
-            
-            if (startIndex === -1) return { allAlerts: [], firstAlert: null };
+            const startIndex = hourly.time.findIndex(t => new Date(t) > nowAtHourStart);
+
+            if (startIndex === -1) return { allAlertsForStatic: [], alertsForModal: [] };
 
             const endIndex = startIndex + 24;
 
             for (let i = startIndex; i < endIndex && i < hourly.time.length; i++) {
-                for (const check of alertChecks) {
-                    if (check.data[i] >= check.threshold) {
-                        alerts.add(check.text);
-                        if (!firstAlert) {
-                            firstAlert = { type: check.type, time: new Date(hourly.time[i]), location: LOCATIONS[locationSelect.value].name };
-                        }
-                    }
+                const isRain = hourly.precipitation_probability[i] >= ALERT_THRESHOLDS.RAIN_PROBABILITY;
+                const isWindy = hourly.wind_speed_10m[i] >= ALERT_THRESHOLDS.WIND_SPEED;
+                const isHot = hourly.temperature_2m[i] >= ALERT_THRESHOLDS.HIGH_TEMP;
+
+                // For static alert (first occurrence of each type)
+                if (isRain && !allStaticAlerts.rain) {
+                    allStaticAlerts.rain = { text: `Hujan (${Math.round(hourly.precipitation_probability[i])}%) pkl ${new Date(hourly.time[i]).getHours()}:00` };
+                }
+                if (isWindy && !allStaticAlerts.wind) {
+                    allStaticAlerts.wind = { text: `Angin kencang (${Math.round(hourly.wind_speed_10m[i])} km/j) pkl ${new Date(hourly.time[i]).getHours()}:00` };
+                }
+                if (isHot && !allStaticAlerts.temp) {
+                    allStaticAlerts.temp = { text: `Suhu panas (${Math.round(hourly.temperature_2m[i])}°C) pkl ${new Date(hourly.time[i]).getHours()}:00` };
+                }
+
+                // For modal alert (all alerts at the very first alert time)
+                if ((isRain || isWindy || isHot) && firstAlertTime === null) {
+                    firstAlertTime = new Date(hourly.time[i]);
+                    if (isRain) alertsForModal.push({ type: 'rain', value: hourly.precipitation_probability[i] });
+                    if (isWindy) alertsForModal.push({ type: 'wind', value: hourly.wind_speed_10m[i] });
+                    if (isHot) alertsForModal.push({ type: 'temp', value: hourly.temperature_2m[i] });
                 }
             }
-            return { allAlerts: Array.from(alerts), firstAlert: firstAlert };
+            
+            const staticAlertsArray = Object.values(allStaticAlerts).filter(alert => alert !== null);
+            if (alertsForModal.length > 0) {
+                 alertsForModal.forEach(alert => {
+                    alert.time = firstAlertTime;
+                    alert.location = LOCATIONS[locationSelect.value].name;
+                });
+            }
+
+            return { allAlertsForStatic: staticAlertsArray, alertsForModal: alertsForModal };
         }
         
         function processNiceWeatherAlert() {
             const { hourly } = weatherData;
             const now = new Date();
             const nowAtHourStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours());
-            const startIndex = hourly.time.findIndex(t => new Date(t) >= nowAtHourStart);
+            const startIndex = hourly.time.findIndex(t => new Date(t) > nowAtHourStart);
 
             if (startIndex === -1) return null;
 
@@ -563,8 +583,8 @@
 
         function showStaticAlert(alerts) {
             staticAlertContainer.innerHTML = '';
-            if (alerts.length > 0) {
-                const alertMessage = alerts.join(', ') + ' dalam 24 jam ke depan.';
+            if (alerts && alerts.length > 0) {
+                const alertMessage = "Peringatan: " + alerts.map(alert => alert.text).join(', ');
                 staticAlertContainer.innerHTML = `
                     <div class="alert-box p-3 rounded-lg flex items-center gap-3">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0"><path d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
@@ -573,7 +593,9 @@
             }
         }
 
-        function showAlertModal(alertInfo) {
+        function showAlertModal(alertInfos) {
+            if (!alertInfos || alertInfos.length === 0) return;
+
             const titleEl = document.getElementById('alert-modal-title');
             const messageEl = document.getElementById('alert-modal-message');
             const tipEl = document.getElementById('alert-modal-tip');
@@ -581,37 +603,57 @@
             const iconEl = document.getElementById('alert-modal-icon');
             
             const timeOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false };
-            const formattedTime = alertInfo.time.toLocaleDateString('id-ID', timeOptions).replace(/\./g, ':').replace('pukul', 'sekitar pukul');
+            const formattedTime = alertInfos[0].time.toLocaleDateString('id-ID', timeOptions).replace(/\./g, ':').replace('pukul', 'sekitar pukul');
+            
+            titleEl.textContent = 'Peringatan Cuaca';
+            
+            let messagesHTML = `<p class="mb-2">Diperkirakan terjadi beberapa kondisi cuaca di <strong>${alertInfos[0].location}</strong> pada <strong>${formattedTime}</strong>:</p><ul class="list-disc pl-5 space-y-1">`;
+            let tipsHTML = '<strong>Tips:</strong><ul class="list-disc pl-5 space-y-1 mt-1">';
+            
+            const severityOrder = ['rain', 'wind', 'temp'];
+            alertInfos.sort((a, b) => severityOrder.indexOf(a.type) - severityOrder.indexOf(b.type));
 
-            let title, message, tip, iconContainerClass, iconClass, iconPath;
+            alertInfos.forEach(alertInfo => {
+                let message, tip;
+                switch (alertInfo.type) {
+                    case 'rain':
+                        message = `Potensi hujan (${Math.round(alertInfo.value)}%)`;
+                        tip = 'Sedia payung/jas hujan & waspada jalanan licin.';
+                        break;
+                    case 'wind':
+                        message = `Potensi angin kencang (${Math.round(alertInfo.value)} km/j)`;
+                        tip = 'Amankan barang di luar & hindari pohon besar.';
+                        break;
+                    case 'temp':
+                        message = `Potensi suhu panas (${Math.round(alertInfo.value)}°C)`;
+                        tip = 'Minum air cukup & hindari paparan matahari.';
+                        break;
+                }
+                messagesHTML += `<li>${message}</li>`;
+                tipsHTML += `<li>${tip}</li>`;
+            });
+            
+            messagesHTML += '</ul>';
+            tipsHTML += '</ul>';
+            messageEl.innerHTML = messagesHTML;
+            tipEl.innerHTML = tipsHTML;
 
-            switch (alertInfo.type) {
+            const primaryAlert = alertInfos[0];
+            let iconContainerClass, iconClass, iconPath;
+             switch (primaryAlert.type) {
                 case 'rain':
-                    title = 'Potensi Hujan Lebat';
-                    message = `Diperkirakan akan terjadi hujan lebat di <strong>${alertInfo.location}</strong> pada <strong>${formattedTime}</strong>.`;
-                    tip = '<strong>Tips:</strong> Sedia payung atau jas hujan sebelum bepergian dan waspada jalanan licin.';
                     iconContainerClass = 'bg-blue-100'; iconClass = 'text-blue-600';
                     iconPath = '<path stroke-linecap="round" stroke-linejoin="round" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" /><path stroke-linecap="round" stroke-linejoin="round" d="M12 19l-2 3m4-3l-2 3" />';
                     break;
                 case 'wind':
-                    title = 'Potensi Angin Kencang';
-                    message = `Waspada potensi angin kencang di <strong>${alertInfo.location}</strong> pada <strong>${formattedTime}</strong>.`;
-                    tip = '<strong>Tips:</strong> Amankan barang di luar ruangan yang mudah terbang & hindari berlindung di bawah pohon besar.';
                     iconContainerClass = 'bg-gray-200'; iconClass = 'text-gray-600';
                     iconPath = '<path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />';
                     break;
                 case 'temp':
-                    title = 'Potensi Suhu Panas';
-                    message = `Suhu diperkirakan akan sangat panas di <strong>${alertInfo.location}</strong> pada <strong>${formattedTime}</strong>.`;
-                    tip = '<strong>Tips:</strong> Minum air yang cukup, gunakan pakaian longgar, dan hindari paparan sinar matahari langsung.';
                     iconContainerClass = 'bg-orange-100'; iconClass = 'text-orange-600';
                     iconPath = '<path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />';
                     break;
             }
-
-            titleEl.textContent = title;
-            messageEl.innerHTML = message;
-            tipEl.innerHTML = tip;
             iconContainerEl.className = `mx-auto flex items-center justify-center h-12 w-12 rounded-full ${iconContainerClass} mb-4`;
             iconEl.className = `h-6 w-6 ${iconClass}`;
             iconEl.innerHTML = iconPath;
@@ -648,8 +690,8 @@
                 link.href = dataUrl;
                 link.click();
             } catch (err) {
-                console.error("Gagal mengunduh gambar:", err);
-                alert('Gagal mengunduh gambar cuaca.');
+                console.error("Gagal membagikan gambar:", err);
+                alert('Gagal membagikan gambar cuaca.');
             }
         }
 
@@ -718,12 +760,12 @@
                 weatherContent.classList.remove('hidden');
                 updateUI();
                 
-                const { allAlerts, firstAlert } = processAlerts();
-                showStaticAlert(allAlerts);
+                const { allAlertsForStatic, alertsForModal } = processAlerts();
+                showStaticAlert(allAlertsForStatic);
                 const niceWeatherInfo = processNiceWeatherAlert();
                 
-                if (firstAlert) {
-                    setTimeout(() => showAlertModal(firstAlert), 1000);
+                if (alertsForModal.length > 0) {
+                    setTimeout(() => showAlertModal(alertsForModal), 1000);
                 } else if (niceWeatherInfo) {
                     setTimeout(() => showNiceWeatherModal(niceWeatherInfo), 1000);
                 } else if (!localStorage.getItem('hasSeenThemeModal')) {
