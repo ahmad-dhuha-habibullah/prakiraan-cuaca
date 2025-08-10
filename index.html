@@ -250,7 +250,7 @@
                     <p id="current-description">--</p>
                     <div id="other-details" class="mt-1">
                         <p>Suhu Sekarang: <span id="current-temp-now" class="font-medium" style="color: var(--text-primary);">--</span></p>
-                        <p>Curah Hujan: <span id="current-precip" class="font-medium" style="color: var(--text-primary);">--</span></p>
+                        <p>Peluang Hujan: <span id="current-precip" class="font-medium" style="color: var(--text-primary);">--</span></p>
                         <p>Kelembaban: <span id="current-humidity" class="font-medium" style="color: var(--text-primary);">--</span></p>
                         <p>Angin: <span id="current-wind" class="font-medium" style="color: var(--text-primary);">--</span></p>
                     </div>
@@ -261,7 +261,7 @@
             <div>
                 <div class="flex border-b mb-4" style="border-color: var(--border-color);">
                     <button data-tab="temperature" class="tab-btn px-4 py-2 text-sm active-tab">Suhu</button>
-                    <button data-tab="precipitation" class="tab-btn px-4 py-2 text-sm">Curah Hujan</button>
+                    <button data-tab="precipitation" class="tab-btn px-4 py-2 text-sm">Peluang Hujan</button>
                     <button data-tab="wind" class="tab-btn px-4 py-2 text-sm">Angin</button>
                 </div>
                 <div class="chart-container">
@@ -485,7 +485,7 @@
             switch(activeTab) {
                 case 'precipitation':
                     chartData = hourly.precipitation_probability.slice(startIndex, endIndex);
-                    yLabel = 'Curah Hujan (%)'; color = '#60a5fa'; type = 'bar'; fill = false;
+                    yLabel = 'Peluang Hujan (%)'; color = '#60a5fa'; type = 'bar'; fill = false;
                     break;
                 case 'wind':
                     chartData = hourly.wind_speed_10m.slice(startIndex, endIndex);
